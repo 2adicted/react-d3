@@ -1,13 +1,20 @@
 import React, { useRef, useEffect } from 'react'
+import Box from '@material-ui/core/Box'
+import Grid from '@material-ui/core/Grid'
+import { grey } from '@material-ui/core/colors'
+import { Button, TextField } from '@material-ui/core'
+import { withStyles } from '@material-ui/core/styles'
+import { spacing } from '@material-ui/system'
 
-class Canvas extends React.Component {
+
+class Canvas extends React.Component {  
   constructor(){
-    super()
+    super()    
     this.canvas = React.createRef()
     this.image = React.createRef()
     this.state = {
-      canvasWidth: 640,
-      canvasHeight: 425,
+      canvasWidth: 401,
+      canvasHeight: 401,
       gridWidth: 80,
       gridHeight: 80,
       gridRes: 10,
@@ -42,7 +49,6 @@ class Canvas extends React.Component {
     })
   }
 
-
   componentDidUpdate(){    
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
@@ -58,14 +64,18 @@ class Canvas extends React.Component {
     const ctx = canvas.getContext('2d')
     const url = DOMURL.createObjectURL(event.target.files[0])
     img.src = url 
-    img.crossOrigin = "Anonymous"    
-
-    const maxW=this.state.canvasHeight
-    const maxH=this.state.canvasWidth
+    img.crossOrigin = "Anonymous"  
+    
+    var maxH = 1000 > this.state.canvasWidth ? this.state.canvasWidth : 1000
+    var maxW = 1000 > this.state.canvasHeight ? this.state.canvasHeight : 1000
 
     img.onload  = () => {
-      const iw=img.width;
-      const ih=img.height;
+      const iw = img.width;
+      const ih = img.height;
+      
+      maxH = 1000 > iw ? iw : 1000
+      maxW = 1000 > ih ? ih : 1000
+
       const scale=Math.min((maxW/iw),(maxH/ih));
       const iwScaled=iw*scale;
       const ihScaled=ih*scale;
@@ -128,71 +138,85 @@ class Canvas extends React.Component {
       const hidden = {
         display: "none"
       }
-      return(
-        <div>
-        <br/>
-        <label for="selectedFile">
+      return(        
+        <Grid container spacing={2}>
+          <Grid item xs={3}>
+          <Box 
+            display="flex"
+            flexDirection="column"
+            justifyContent="flex-start"
+            padding={1} 
+            border={1} 
+            borderColor="grey.200" 
+            borderRadius={10} 
+            height={this.state.canvasHeight}>
+              <TextField 
+                id="canvas-width"
+                type="number" 
+                label="Canvas width"
+                variant="outlined"
+                color="primary"
+                value={this.state.canvasWidth}
+                onChange={this.handleSizeChange}
+                /> 
+              <TextField 
+                id="canvas-height"
+                type="number" 
+                label="Canvas height"
+                variant="outlined"
+                color="primary"
+                value={this.state.canvasHeight}
+                onChange={this.handleSizeChange}
+                /> 
+              <TextField 
+                id="grid-width"
+                type="number" 
+                label="Grid size"
+                variant="outlined"
+                color="primary"
+                value={this.state.gridWidth}
+                onChange={this.handleGridSizeChange}
+                /> 
+              <TextField 
+                id="grid-res"
+                type="number" 
+                label="Grid squares per inch"
+                variant="outlined"
+                color="primary"
+                value={this.state.gridRes}
+                onChange={this.handleGridResChange}
+                />       
               <input 
+                  accept="image/*"
                   type="file" 
                   id="selectedFile" 
                   style={{display: "none"}} 
                   onChange={this.handleChange} /> 
-                  Browse...
-          </label>
-          <br/>
-          <br/>
-          <canvas 
-            ref={this.canvas} 
-            width={this.state.canvasWidth} 
-            height={this.state.canvasHeight} />
-          <img 
-            ref={this.image} 
-            src={this.state.picture} 
-            style={hidden} />
-          <br/>
-          <labebl className="userInput">
-            Width
-            <input 
-              type="number" 
-              name="width"
-              style={{marginLeft: "10px"}} 
-              value={this.state.canvasWidth}
-              onChange={this.handleSizeChange}
-              />
-          </labebl>
-          <br/>
-          <labebl className="userInput">
-            Width
-            <input 
-              type="number" 
-              name="height"
-              style={{marginLeft: "10px"}} 
-              value={this.state.canvasHeight}
-              onChange={this.handleSizeChange}
-              />
-          </labebl>
-          <br/>
-          <labebl className="userInput">
-            Grid size
-            <input 
-              type="number" 
-              name="gridWidth"
-              style={{marginLeft: "10px"}} 
-              value={this.state.gridWidth}
-              onChange={this.handleGridSizeChange}
-              />
-          </labebl><br/>
-          <labebl className="userInput">
-            Grid squares per inch
-            <input 
-              type="number" 
-              name="gridResolution"
-              style={{marginLeft: "10px"}} 
-              value={this.state.gridRes}
-              onChange={this.handleGridResChange}
-              />
-          </labebl>
-        </div>
+              <label htmlFor="selectedFile">
+                <Button variant="contained" component="span" color="primary">
+                  Browse ..
+                </Button>
+              </label> 
+            </Box>
+          </Grid>
+          <Grid item xs={9}>
+          <Box 
+            p={1} 
+            border={1} 
+            borderColor="grey.200" 
+            borderRadius={10} 
+            height={this.state.canvasHeight}>
+              <canvas 
+                ref={this.canvas} 
+                width={this.state.canvasWidth} 
+                height={this.state.canvasHeight} />
+              <img 
+                ref={this.image} 
+                src={this.state.picture} 
+                style={hidden} />
+              </Box>
+          </Grid>        
+        </Grid>
       )
     }
   }
