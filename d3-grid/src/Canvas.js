@@ -174,83 +174,101 @@ class Canvas extends React.Component {
       }
       const { classes } = this.props     
 
-      return(                
-        <Grid container spacing={2}>
-          <Drawer
-            className={classes.drawer}
-            width="150%"
-            variant="permanent"
-            anchor="left">
-            <div clasName={classes.toolbar}/>
-              <TextField 
-                id="canvas-width"
-                type="number" 
-                label="Canvas width"
-                variant="outlined"
-                color="primary"
-                inputProps={{ step: "5" }}
-                value={this.state.canvasWidth}
-                onChange={this.handleSizeChange}
-                /> 
-              <TextField 
-                id="canvas-height"
-                type="number" 
-                label="Canvas height"
-                variant="outlined"
-                color="primary"
-                inputProps={{ step: "5" }}
-                value={this.state.canvasHeight}
-                onChange={this.handleSizeChange}
-                /> 
-              <TextField 
-                id="grid-width"
-                type="number" 
-                label="Grid size"
-                variant="outlined"
-                color="primary"
-                value={this.state.gridWidth}
-                onChange={this.handleGridSizeChange}
-                /> 
-              <TextField 
-                id="grid-res"
-                type="number" 
-                label="Grid squares per inch"
-                variant="outlined"
-                color="primary"
-                value={this.state.gridRes}
-                onChange={this.handleGridResChange}
-                />       
-              <Divider />
-              <input 
-                  accept="image/*"
-                  type="file" 
-                  id="selectedFile" 
-                  style={{display: "none"}} 
-                  onChange={this.handleChange} /> 
-              <label htmlFor="selectedFile">
-                <Button variant="contained" component="span" color="primary">
-                  Browse ..
-                </Button>
-              </label> 
-          </Drawer>
-          <Grid item xs={9}>
-          <Box 
-            p={1} 
-            border={1} 
-            borderColor="grey.200" 
-            borderRadius={10} 
-            height={this.state.canvasHeight}>
-              <canvas 
-                ref={this.canvas} 
-                width={this.state.canvasWidth} 
-                height={this.state.canvasHeight} />
-              <img 
-                ref={this.image} 
-                src={this.state.picture} 
-                style={hidden} />
+      return(      
+        <div> 
+        <Grid container direction="row" spacing={2}>   
+          <Grid item xs={3}>
+            <Box
+              p={1} 
+              border={1} 
+              borderColor="grey.200" 
+              borderRadius={10} 
+              minHeight={360}
+              height={this.state.canvasHeight + 18}>
+              <Grid container direction="column">  
+                <Grid item>
+                  <TextField 
+                      id="canvas-width"
+                      type="number" 
+                      label="Canvas width"
+                      variant="outlined"
+                      color="primary"
+                      inputProps={{ step: "5" }}
+                      value={this.state.canvasWidth}
+                      onChange={this.handleSizeChange}
+                    /> 
+                </Grid>
+                <Grid item>
+                  <TextField     
+                    id="canvas-height"
+                    type="number" 
+                    label="Canvas height"
+                    variant="outlined"
+                    color="primary"
+                    inputProps={{ step: "5" }}
+                    value={this.state.canvasHeight}
+                    onChange={this.handleSizeChange}
+                  /> 
+                </Grid>
+                <Grid item>
+                  <TextField 
+                    id="grid-width"
+                    type="number" 
+                    label="Grid size"
+                    variant="outlined"
+                    color="primary"
+                    value={this.state.gridWidth}
+                    onChange={this.handleGridSizeChange}
+                  /> 
+                </Grid>
+                <Grid item>
+                  <TextField 
+                    id="grid-res"
+                    type="number" 
+                    label="Grid squares per inch"
+                    variant="outlined"
+                    color="primary"
+                    value={this.state.gridRes}
+                    onChange={this.handleGridResChange}
+                  />    
+                </Grid>
+                <Grid item>
+                  <input 
+                      accept="image/*"
+                      type="file" 
+                      id="selectedFile" 
+                      style={{display: "none"}} 
+                      onChange={this.handleChange} /> 
+                  <label htmlFor="selectedFile">
+                    <Button variant="contained" component="span" color="primary">
+                      Browse ..
+                    </Button>
+                  </label> 
+                </Grid>  
+              </Grid>   
             </Box>
-          </Grid>        
-        </Grid>
+          </Grid> 
+          <Grid item xs={9}>
+            <Box 
+              p={1} 
+              border={1} 
+              borderColor="grey.200" 
+              borderRadius={10} 
+              minHeight={360}
+              height={this.state.canvasHeight + 18}>
+                <canvas 
+                  ref={this.canvas} 
+                  width={this.state.canvasWidth} 
+                  height={this.state.canvasHeight} />
+                <img 
+                  ref={this.image} 
+                  src={this.state.picture} 
+                  style={hidden} />
+              </Box>
+          </Grid>   
+        </Grid>        
+        <Divider style={{marginTop: "20px"}}/> 
+        </div>
       )
     }
   }

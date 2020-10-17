@@ -10,7 +10,7 @@ import Canvas from './Canvas.js'
 import Page from './Page.js'
 import theme from './theme'
 
-const drawerWidth = 400
+const drawerWidth = 200
 
 const useStyles = makeStyles((theme) => ({
   root: {    
@@ -32,14 +32,14 @@ const useStyles = makeStyles((theme) => ({
   },
   content: {
     flexGrow: 1,
-    padding: theme.spacing(3),
+    padding: theme.spacing(2),
   },
   paper: {
-    padding: theme.spacing(1),
+    padding: theme.spacing(2),
     textAlign:'center',
     color: theme.palette.text.secondary,
   },  
-  toolbar: theme.mixins.toolbar
+  toolbar: theme.mixins.toolbar,
 }))
 
 
@@ -47,6 +47,7 @@ function App() {
   const classes = useStyles()
   
   return (
+      
     <ThemeProvider theme={theme} className={classes.root}>
       <CssBaseline />
       <AppBar position='fixed' className={classes.appBar}>
@@ -55,8 +56,9 @@ function App() {
             Goblin maker
           </Typography>
         </Toolbar>
-      </AppBar>      
-      <Page/> 
+      </AppBar> 
+      <div className={classes.toolbar} />   
+      <Page/>  
     </ThemeProvider>
   );
 }
