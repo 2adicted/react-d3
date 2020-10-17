@@ -26,6 +26,11 @@ theme.props={
 }
 
 theme.overrides = {
+    MuiDrawer:{
+        root:{
+            // width: 400,
+        }
+    },
     MuiButton:{
         root:{
             borderRadius: 5,

@@ -5,7 +5,40 @@ import { grey } from '@material-ui/core/colors'
 import { Button, TextField } from '@material-ui/core'
 import { withStyles } from '@material-ui/core/styles'
 import { spacing } from '@material-ui/system'
+import { makeStyles } from '@material-ui/core/styles'
+import Drawer from '@material-ui/core/Drawer'
+import Toolbar from '@material-ui/core/Toolbar'
+import List from '@material-ui/core/List'
+import Typography from '@material-ui/core/Typography'
+import Divider from '@material-ui/core/Divider'
+import ListItem from '@material-ui/core/ListItem'
+import ListItemIcon from '@material-ui/core/ListItemIcon'
+import ListItemText from '@material-ui/core/ListItemText'
 
+
+export const defaultDrawerWidth = 500
+const minDrawerWidth = 50
+const maxDrawerWidth = 1000
+
+const styles = theme => ({
+  drawer: {
+    flexShrink: 0,
+    width: defaultDrawerWidth
+  },
+  toolbar: theme.mixins.toolbar,
+  dragger: {
+    width: "5px",
+    cursor: "ew-resize",
+    padding: "4px 0 0",
+    borderTop: "1px solid #ddd",
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    backgroundColor: "#f4f7f9"
+  }
+})
 
 class Canvas extends React.Component {  
   constructor(){
@@ -28,9 +61,9 @@ class Canvas extends React.Component {
   }
 
   handleSizeChange(event){
-    const {value, name} = event.target
+    const {value, id} = event.target
     this.setState({
-      [name === "width" ? "canvasWidth" : "canvasHeight"] : value
+      [id === "canvas-width" ? "canvasWidth" : "canvasHeight"] : value
     })
   }
 
@@ -38,7 +71,8 @@ class Canvas extends React.Component {
     const {value, name} = event.target
     this.setState({
        gridWidth: value,
-       gridHeight: value
+       gridHeight: value,
+
     })
   }
 
@@ -52,8 +86,8 @@ class Canvas extends React.Component {
   componentDidUpdate(){    
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
-    
-    ctx.putImageData(this.state.imgData, 0, 0)       
+
+    typeof(this.state.imgData) === 'object' && ctx.putImageData(this.state.imgData, 0, 0)      
     this.drawGrid()
   } 
 
@@ -138,24 +172,23 @@ class Canvas extends React.Component {
       const hidden = {
         display: "none"
       }
-      return(        
+      const { classes } = this.props     
+
+      return(                
         <Grid container spacing={2}>
-          <Grid item xs={3}>
-          <Box 
-            display="flex"
-            flexDirection="column"
-            justifyContent="flex-start"
-            padding={1} 
-            border={1} 
-            borderColor="grey.200" 
-            borderRadius={10} 
-            height={this.state.canvasHeight}>
+          <Drawer
+            className={classes.drawer}
+            width="150%"
+            variant="permanent"
+            anchor="left">
+            <div clasName={classes.toolbar}/>
               <TextField 
                 id="canvas-width"
                 type="number" 
                 label="Canvas width"
                 variant="outlined"
                 color="primary"
+                inputProps={{ step: "5" }}
                 value={this.state.canvasWidth}
                 onChange={this.handleSizeChange}
                 /> 
@@ -165,6 +198,7 @@ class Canvas extends React.Component {
                 label="Canvas height"
                 variant="outlined"
                 color="primary"
+                inputProps={{ step: "5" }}
                 value={this.state.canvasHeight}
                 onChange={this.handleSizeChange}
                 /> 
@@ -186,6 +220,7 @@ class Canvas extends React.Component {
                 value={this.state.gridRes}
                 onChange={this.handleGridResChange}
                 />       
+              <Divider />
               <input 
                   accept="image/*"
                   type="file" 
@@ -197,8 +232,7 @@ class Canvas extends React.Component {
                   Browse ..
                 </Button>
               </label> 
-            </Box>
-          </Grid>
+          </Drawer>
           <Grid item xs={9}>
           <Box 
             p={1} 
@@ -214,11 +248,11 @@ class Canvas extends React.Component {
                 ref={this.image} 
                 src={this.state.picture} 
                 style={hidden} />
-              </Box>
+            </Box>
           </Grid>        
         </Grid>
       )
     }
   }
 
-export default Canvas
+export default withStyles(styles, { withTheme: true})(Canvas)
