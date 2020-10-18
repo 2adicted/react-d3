@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import Box from '@material-ui/core/Box'
 import Grid from '@material-ui/core/Grid'
 import { grey } from '@material-ui/core/colors'
-import { Button, TextField } from '@material-ui/core'
+import { Button, Paper, TextField } from '@material-ui/core'
 import { withStyles } from '@material-ui/core/styles'
 import { spacing } from '@material-ui/system'
 import { makeStyles } from '@material-ui/core/styles'
@@ -62,9 +62,17 @@ class Canvas extends React.Component {
 
   handleSizeChange(event){
     const {value, id} = event.target
-    this.setState({
-      [id === "canvas-width" ? "canvasWidth" : "canvasHeight"] : value
-    })
+    if(id === "canvas-width")
+    {
+      this.setState({
+        canvasWidth: value,
+      })
+    }
+    else{
+      this.setState({
+        canvasHeight: value,
+      })
+    }    
   }
 
   handleGridSizeChange(event){
@@ -84,13 +92,19 @@ class Canvas extends React.Component {
   }
 
   componentDidUpdate(){    
-    const canvas = this.canvas.current
-    const ctx = canvas.getContext('2d')
-
-    typeof(this.state.imgData) === 'object' && ctx.putImageData(this.state.imgData, 0, 0)      
+    // after any update
+    // 1. draw the grid
+    // 2. if we have image data, draw the image
     this.drawGrid()
+    typeof(this.state.imgData) === 'object' && this.drawImage()    
   } 
+  
+  componentDidMount(){
+    this.drawGrid()
+    typeof(this.state.imgData) === 'object' && this.drawImage()  
+  }  
 
+  
   handleChange(event){
     const DOMURL = window.URL || window.webkitURL || window
     const img = this.image.current
@@ -116,7 +130,8 @@ class Canvas extends React.Component {
       canvas.width=iwScaled;
       canvas.height=ihScaled;
       ctx.drawImage(img,0,0,iwScaled,ihScaled);
-      const data = ctx.getImageData(0,0,this.state.canvasWidth, this.state.canvasHeight)
+      // const data = ctx.getImageData(0,0,this.state.canvasWidth, this.state.canvasHeight)
+      const data = ctx.getImageData(0,0,iwScaled, ihScaled)
 
       this.setState({
         picture: img,        
@@ -126,16 +141,21 @@ class Canvas extends React.Component {
       })
       DOMURL.revokeObjectURL(url)
       this.drawGrid()
+      this.drawImage()
     }
   }
 
-  componentDidMount(){
-    this.drawGrid()
-  }  
+
+  drawImage(){
+    const canvas = this.canvas.current
+    const ctx = canvas.getContext('2d')
+    ctx.putImageData(this.state.imgData, 0, 0)  
+  }
 
   drawGrid(){
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
+    ctx.clearRect(0,0,canvas.width, canvas.height)
     const w = this.state.gridWidth
     const h = this.state.gridHeight
     const r = this.state.gridRes
@@ -183,9 +203,8 @@ class Canvas extends React.Component {
               border={1} 
               borderColor="grey.200" 
               borderRadius={10} 
-              minHeight={360}
-              height={this.state.canvasHeight + 18}>
-              <Grid container direction="column">  
+              minHeight={360}>
+              <Grid container direction="column"> 
                 <Grid item>
                   <TextField 
                       id="canvas-width"
@@ -254,8 +273,7 @@ class Canvas extends React.Component {
               border={1} 
               borderColor="grey.200" 
               borderRadius={10} 
-              minHeight={360}
-              height={this.state.canvasHeight + 18}>
+              minHeight={360}>
                 <canvas 
                   ref={this.canvas} 
                   width={this.state.canvasWidth} 
@@ -273,4 +291,4 @@ class Canvas extends React.Component {
     }
   }
 
-export default withStyles(styles, { withTheme: true})(Canvas)
+export default withStyles(styles, { withTheme: true })(Canvas)
