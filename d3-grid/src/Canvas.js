@@ -60,19 +60,33 @@ class Canvas extends React.Component {
     this.handleGridResChange = this.handleGridResChange.bind(this)
   }
 
-  handleSizeChange(event){
+  async handleSizeChange(event){
     const {value, id} = event.target
+    var prevWidth, width, prevHeight, height
+    prevWidth = width = this.state.canvasWidth
+    prevHeight = height = this.state.canvasHeight
+    var scaleX = 1.0
+    var scaleY = 1.0
+    const canvas = this.canvas.current
+    const ctx = canvas.getContext('2d')   
     if(id === "canvas-width")
     {
-      this.setState({
-        canvasWidth: value,
-      })
+      width = value
+      scaleX = width / prevWidth     
     }
     else{
-      this.setState({
-        canvasHeight: value,
-      })
-    }    
+      height = value
+      scaleY = height / prevHeight
+    } 
+    const imageData = this.state.imgData
+    const img = await window.createImageBitmap(imageData,0,0,prevWidth,prevHeight,{ width, height})
+    ctx.drawImage(img,0,0,width,height)
+    const data = ctx.getImageData(0,0,width,height)   
+    this.setState({
+      canvasWidth: width,
+      canvasHeight: height,
+      imgData: data
+    })   
   }
 
   handleGridSizeChange(event){
@@ -80,7 +94,6 @@ class Canvas extends React.Component {
     this.setState({
        gridWidth: value,
        gridHeight: value,
-
     })
   }
 
@@ -97,13 +110,20 @@ class Canvas extends React.Component {
     // 2. if we have image data, draw the image
     this.drawGrid()
     typeof(this.state.imgData) === 'object' && this.drawImage()    
+    if(typeof(this.state.imgData) === 'object')
+    {
+      console.log('update + imageData')  
+    } 
+    else{
+      console.log('update')  
+    }
   } 
   
   componentDidMount(){
     this.drawGrid()
     typeof(this.state.imgData) === 'object' && this.drawImage()  
-  }  
-
+    console.log('mount')
+}  
   
   handleChange(event){
     const DOMURL = window.URL || window.webkitURL || window
@@ -144,7 +164,6 @@ class Canvas extends React.Component {
       this.drawImage()
     }
   }
-
 
   drawImage(){
     const canvas = this.canvas.current
@@ -187,7 +206,7 @@ class Canvas extends React.Component {
       DOMURL.revokeObjectURL(url)
     }
   }
-  
+ 
   render() {
       const hidden = {
         display: "none"
