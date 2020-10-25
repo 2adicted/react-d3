@@ -5,6 +5,15 @@ import { Button, colors, TextField, Typography } from '@material-ui/core'
 import { withStyles } from '@material-ui/core/styles'
 import Divider from '@material-ui/core/Divider'
 import Swatch from './Swatch'
+import ColorThief from 'colorthief'
+
+import {
+  IMAGE,
+  IMAGE_STYLES,
+  SWATCHES_STYLES,
+  Swatches,
+  renderSwatches
+} from "./Utils"
 
 export const defaultDrawerWidth = 500
 
@@ -34,6 +43,7 @@ class Canvas extends React.Component {
     this.canvas = React.createRef()
     this.secondCanvas = React.createRef()
     this.image = React.createRef()
+    this.colorThief = new ColorThief()
     this.state = {
       canvasWidth: 401,
       canvasHeight: 401,
@@ -43,13 +53,19 @@ class Canvas extends React.Component {
       picture: "https://i.ytimg.com/vi/wvCGaWXr8Qk/sddefault.jpg",
       imgData: "",
       debug: 80 / 10,
-      colors: []
+      colors: [],
+      image: "",
+      colorCount: 20,
+      url: "",
+      gridToggle: true
     }
     this.handleChange = this.handleChange.bind(this)
     this.handleSizeChange = this.handleSizeChange.bind(this)
     this.handleGridSizeChange = this.handleGridSizeChange.bind(this)
     this.handleGridResChange = this.handleGridResChange.bind(this)
     this.handleColors = this.handleColors.bind(this)
+    this.handleColorNumberChange = this.handleColorNumberChange.bind(this)
+    this.handleGridToggle = this.handleGridToggle.bind(this)
   }
 
   async handleSizeChange(event){
@@ -86,6 +102,11 @@ class Canvas extends React.Component {
     }))
   }
 
+  handleGridToggle(event){
+    this.setState({gridToggle: !this.state.gridToggle})
+    this.drawGrid()
+  }
+
   handleGridResChange(event){
     const {value, name} = event.target
     this.setState(prevState => ({
@@ -93,12 +114,49 @@ class Canvas extends React.Component {
       //  debug: this.state.gridWidth / value
     }))
   }
+  
+
+  handleColorNumberChange(event){
+    const {value} = event.target    
+    const DOMURL = window.URL || window.webkitURL || window
+    const img = this.image.current
+    const url = DOMURL.createObjectURL(this.state.url)
+    img.src = url 
+    img.crossOrigin = "Anonymous"  
+    
+    var maxH = 1000 > this.state.canvasWidth ? this.state.canvasWidth : 1000
+    var maxW = 1000 > this.state.canvasHeight ? this.state.canvasHeight : 1000
+
+    img.onload  = () => {
+      const iw = img.width;
+      const ih = img.height;
+      
+      maxH = 1000 > iw ? iw : 1000
+      maxW = 1000 > ih ? ih : 1000
+
+      const scale=Math.min((maxW/iw),(maxH/ih));
+      const iwScaled=iw*scale;
+      const ihScaled=ih*scale;
+      
+      const palette = this.colorThief.getPalette(img, this.state.colorCount) 
+      
+      console.log(this.state.colorCount + ": " + palette)
+
+      this.setState(({
+        colors: palette,
+        colorCount: value,
+        debug: value
+      }))
+      DOMURL.revokeObjectURL(url)  
+    }
+  }
 
   handleChange(event){
     const DOMURL = window.URL || window.webkitURL || window
     const img = this.image.current
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
+    const file = event.target.files[0]
     const url = DOMURL.createObjectURL(event.target.files[0])
     img.src = url 
     img.crossOrigin = "Anonymous"  
@@ -120,37 +178,80 @@ class Canvas extends React.Component {
       canvas.height=ihScaled;
       ctx.drawImage(img,0,0,iwScaled,ihScaled);
       const data = ctx.getImageData(0,0,iwScaled, ihScaled)
+      
+      const palette = this.colorThief.getPalette(img, this.state.colorCount)
 
       this.setState(prevState => ({
         picture: img,        
         imgData: data,
+        image: ctx,
         canvasWidth: canvas.width,
-        canvasHeight: canvas.height
+        canvasHeight: canvas.height,
+        colors: palette,
+        url: file
       }))
       DOMURL.revokeObjectURL(url)
     }
   }
 
   handleColors(event){
+    const canvas = this.canvas.current
+    const ctx = canvas.getContext('2d')
+    const imageData = ctx.getImageData(0,0,this.state.imgData.width,this.state.imgData.height)       
+    var data = imageData.data
+
     const secondCanvas = this.secondCanvas.current
-    const ctx2 = secondCanvas.getContext('2d')    
-   
-    if(ctx2)  
-    {
-      var palette = this.getDominantPalettes(
-        this.getAllPalettes(
-          secondCanvas.width, 
-          secondCanvas.height, 
-          ctx2), 
-          12, 
-          'rgba') 
-      this.setState({
-        debug: this.state.colors.length,
-        colors: palette
-      })
-    } 
+    const ctx2 = secondCanvas.getContext('2d')
+
+    var res = Math.floor(this.state.gridWidth / this.state.gridRes)
+
+    var width = this.state.canvasWidth
+    var height = this.state.canvasHeight
+    var cellX = 0
+    var cellY = 0
+    var colorSet = new Set()
+
+    for (var x = 0; x <= width; x++) {
+      cellY = 0
+      if(x%res === 0) cellX ++
+      for (var y = 0; y <= height; y++) {
+        if(y%res === 0) 
+        {
+          cellY ++
+          var copy = ((res * cellY) * width + res * cellX) * 4
+          var color = this.GetClosestColor([data[copy],data[copy+1],data[copy+2]])
+        }
+
+        var index = (y * width + x) * 4
+
+        data[index] = color[0]
+        data[index + 1] = color[1]
+        data[index + 2] = color[2]
+      }
+    }
+    // this.drawGrid()
+    ctx2.putImageData(imageData, 0, 0)    
   }
 
+  GetClosestColor(col)
+  {
+    var distance = 1000000
+    var color = ""
+    for(var i = 0; i < this.state.colors.length - 1; i++){
+      var d = this.Distance(this.state.colors[i], col)
+      if(d < distance)
+      {
+        distance = d
+        color = this.state.colors[i]
+      }
+    }
+    return color
+  }
+
+  Distance(a, b) {
+    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2))
+  }
+  
   componentDidUpdate(prevProps, prevState){       
     // after any update
     // 1. draw the grid
@@ -158,7 +259,7 @@ class Canvas extends React.Component {
     // 3. finally, create the pixelated image
     if(typeof(this.state.imgData) === 'object')
     {      
-      this.drawGrid()
+      if(!this.state.gridToggle) this.drawGrid()
       this.drawImage()
       this.copyPixels()       
     } 
@@ -168,7 +269,7 @@ class Canvas extends React.Component {
     this.drawGrid()
     typeof(this.state.imgData) === 'object' && this.drawImage()  
     console.log('mount')
-}  
+  }  
 
   drawImage(){
     const canvas = this.canvas.current
@@ -213,73 +314,14 @@ class Canvas extends React.Component {
     }
    
     ctx2.putImageData(imageData, 0, 0)    
-  }
-   
-
-//#region Extract Color Palette
-getAllPalettes(width, height, context) {
-  const distinctPalettes = []
-  // loop through each and every pixels of image       
-  for (var i=0; i<=height; i++) { 
-    for (var j=0; j<=width; j++) { 
-      try {
-        var data = context.getImageData(i, j, 1, 1)
-        if (data.data.toString().trim() !== '0,0,0,0') {
-          distinctPalettes.push(data.data)
-        }
-      } catch(e) {
-        console.log(e)
-      }
-    }
   }   
-  return distinctPalettes;
-}
-
-getPaletteOccurrences(palettes) {  
-  let paletteList = [], occurrenceList = [], previousPalette;
-  palettes.sort();
-  palettes.forEach((palette, key) => {
-    if (palette.toString() !== previousPalette) {
-      paletteList.push(palette);
-      occurrenceList.push(1);
-    } else {
-      occurrenceList[occurrenceList.length-1]++;
-    }
-    previousPalette = palettes[key].toString();
-  });
-  return [paletteList, occurrenceList];
-}
-
-getDominantPalettes(allPalettes, distinctCount, colorType) {
-  const combinations = this.getPaletteOccurrences(allPalettes);
-  let palettes = combinations[0];
-  let occurrences = combinations[1];
-  const dominantPalettes = [];
-
-  while (distinctCount) {               
-    let dominant = 0, dominantKey = 0;  
-    occurrences.forEach((v, k) => {           
-      if (v > dominant) {
-        dominant = v;              
-        dominantKey = k;                               
-      }
-    });
-    dominantPalettes.push(palettes[dominantKey]);
-      
-    palettes.splice(dominantKey, 1);            
-    occurrences.splice(dominantKey, 1);
-    distinctCount--;
-  }
-  return dominantPalettes;
-}
-
-//#endregion
 
   drawGrid(){
     console.log("draw grid")
     const canvas = this.secondCanvas.current
     const ctx = canvas.getContext('2d')
     ctx.clearRect(0,0,canvas.width, canvas.height)
+    if(!this.state.gridToggle) return
     const w = this.state.gridWidth
     const h = this.state.gridHeight
     const r = this.state.gridRes
@@ -387,20 +429,32 @@ getDominantPalettes(allPalettes, distinctCount, colorType) {
                     </Button>
                   </label> 
                 </Grid>  
-                <Grid item>
+                {/* <Grid item>
                   <label>{this.state.debug}</label>
-                </Grid>
+                </Grid> */}
               </Grid>   
             </Box>
             <Box 
               p={1} 
               border={1} 
               borderColor="grey.200" 
-              borderRadius={10} >
-                <Grid container direction="row">
-                  {this.state.colors.map((color, key) => ( <Swatch key={key} color={color}></Swatch> ))}
-                </Grid>
+              borderRadius={10}>
+              {/* <Swatches colors = {this.state.colors} renderSwatches={renderSwatches}/> */}
+              <Grid container direction="row">
+                {this.state.colors.map((color, key) => ( <Swatch key={key} color={color}></Swatch> ))}
+              </Grid>
+              {/* <Swatch colors = {this.state.colors}></Swatch> */}
               <Button variant="contained" component="span" color="primary" onClick={this.handleColors}>Colors</Button>
+              <Button style={{marginLeft: 10}} variant="contained" component="span" color="primary" onClick={this.handleGridToggle}>Grid</Button>
+              {/* <TextField 
+                    id="color-number"
+                    type="number" 
+                    label="Number of colors"
+                    variant="outlined"
+                    color="primary"
+                    value={this.state.colorCount}
+                    onChange={this.handleColorNumberChange}
+                  />  */}
             </Box>
           </Grid> 
           <Grid item xs={9} container direction="row">
