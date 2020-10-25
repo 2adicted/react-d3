@@ -43,7 +43,7 @@ class Canvas extends React.Component {
       picture: "https://i.ytimg.com/vi/wvCGaWXr8Qk/sddefault.jpg",
       imgData: "",
       debug: 80 / 10,
-      colors: [[0,0,0,255],[32,28,42,255],[32,25,41,255]]
+      colors: []
     }
     this.handleChange = this.handleChange.bind(this)
     this.handleSizeChange = this.handleSizeChange.bind(this)
@@ -132,19 +132,35 @@ class Canvas extends React.Component {
   }
 
   handleColors(event){
-    console.log(this.state.colors)
-    this.setState({
-      debug: this.state.colors.length
-    })
+    const secondCanvas = this.secondCanvas.current
+    const ctx2 = secondCanvas.getContext('2d')    
+   
+    if(ctx2)  
+    {
+      var palette = this.getDominantPalettes(
+        this.getAllPalettes(
+          secondCanvas.width, 
+          secondCanvas.height, 
+          ctx2), 
+          12, 
+          'rgba') 
+      this.setState({
+        debug: this.state.colors.length,
+        colors: palette
+      })
+    } 
   }
 
   componentDidUpdate(prevProps, prevState){       
     // after any update
     // 1. draw the grid
     // 2. if we have image data, draw the image
+    // 3. finally, create the pixelated image
     if(typeof(this.state.imgData) === 'object')
     {      
-      this.copyPixels() 
+      this.drawGrid()
+      this.drawImage()
+      this.copyPixels()       
     } 
   } 
   
@@ -163,9 +179,9 @@ class Canvas extends React.Component {
   copyPixels(){    
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
-    const imageData = ctx.getImageData(0,0,this.state.imgData.width,this.state.imgData.height)   
-    
+    const imageData = ctx.getImageData(0,0,this.state.imgData.width,this.state.imgData.height)       
     var data = imageData.data
+
     const secondCanvas = this.secondCanvas.current
     const ctx2 = secondCanvas.getContext('2d')
 
@@ -195,23 +211,8 @@ class Canvas extends React.Component {
         data[index + 2] = data[copy + 2]
       }
     }
-    var it = colorSet.values()
-    var first = it.next()
-    if(this.state.debug !== colorSet.size){   
-     
-      this.drawGrid()
-      typeof(this.state.imgData) === 'object' && this.drawImage()    
-      this.setState(prevState => ({
-        debug: colorSet.size
-      }))
-      
-    } 
-    ctx2.putImageData(imageData, 0, 0)
-    if(ctx2)  
-    {
-      var palette = this.getDominantPalettes(this.getAllPalettes(secondCanvas.width, secondCanvas.height, ctx2), 3, 'rgba') 
-      console.log(palette)
-    } 
+   
+    ctx2.putImageData(imageData, 0, 0)    
   }
    
 
@@ -397,7 +398,6 @@ getDominantPalettes(allPalettes, distinctCount, colorType) {
               borderColor="grey.200" 
               borderRadius={10} >
                 <Grid container direction="row">
-                  <Swatch color={[20,100,250,255]}></Swatch>
                   {this.state.colors.map((color, key) => ( <Swatch key={key} color={color}></Swatch> ))}
                 </Grid>
               <Button variant="contained" component="span" color="primary" onClick={this.handleColors}>Colors</Button>

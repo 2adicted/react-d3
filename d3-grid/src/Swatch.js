@@ -2,7 +2,6 @@ import React from 'react'
 import Box from '@material-ui/core/Box'
 
 
-
 function Swatch(props) {   
     return <Box margin={0.5} marginBottom={2} bgcolor={arrayToRGBA(props.color)} width={20} height={20}></Box>;
 }
