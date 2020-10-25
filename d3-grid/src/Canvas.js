@@ -1,24 +1,12 @@
-import React, { useRef, useEffect } from 'react'
+import React from 'react'
 import Box from '@material-ui/core/Box'
 import Grid from '@material-ui/core/Grid'
-import { grey } from '@material-ui/core/colors'
-import { Button, Paper, TextField } from '@material-ui/core'
+import { Button, colors, TextField, Typography } from '@material-ui/core'
 import { withStyles } from '@material-ui/core/styles'
-import { spacing } from '@material-ui/system'
-import { makeStyles } from '@material-ui/core/styles'
-import Drawer from '@material-ui/core/Drawer'
-import Toolbar from '@material-ui/core/Toolbar'
-import List from '@material-ui/core/List'
-import Typography from '@material-ui/core/Typography'
 import Divider from '@material-ui/core/Divider'
-import ListItem from '@material-ui/core/ListItem'
-import ListItemIcon from '@material-ui/core/ListItemIcon'
-import ListItemText from '@material-ui/core/ListItemText'
-
+import Swatch from './Swatch'
 
 export const defaultDrawerWidth = 500
-const minDrawerWidth = 50
-const maxDrawerWidth = 1000
 
 const styles = theme => ({
   drawer: {
@@ -55,12 +43,13 @@ class Canvas extends React.Component {
       picture: "https://i.ytimg.com/vi/wvCGaWXr8Qk/sddefault.jpg",
       imgData: "",
       debug: 80 / 10,
-      colors: new Set()
+      colors: [[0,0,0,255],[32,28,42,255],[32,25,41,255]]
     }
     this.handleChange = this.handleChange.bind(this)
     this.handleSizeChange = this.handleSizeChange.bind(this)
     this.handleGridSizeChange = this.handleGridSizeChange.bind(this)
     this.handleGridResChange = this.handleGridResChange.bind(this)
+    this.handleColors = this.handleColors.bind(this)
   }
 
   async handleSizeChange(event){
@@ -68,18 +57,14 @@ class Canvas extends React.Component {
     var prevWidth, width, prevHeight, height
     prevWidth = width = this.state.canvasWidth
     prevHeight = height = this.state.canvasHeight
-    var scaleX = 1.0
-    var scaleY = 1.0
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')   
     if(id === "canvas-width")
     {
-      width = value
-      scaleX = width / prevWidth     
+      width = value  
     }
     else{
       height = value
-      scaleY = height / prevHeight
     } 
     const imageData = this.state.imgData
     const img = await window.createImageBitmap(imageData,0,0,prevWidth,prevHeight,{ width, height})
@@ -146,18 +131,21 @@ class Canvas extends React.Component {
     }
   }
 
+  handleColors(event){
+    console.log(this.state.colors)
+    this.setState({
+      debug: this.state.colors.length
+    })
+  }
+
   componentDidUpdate(prevProps, prevState){       
     // after any update
     // 1. draw the grid
     // 2. if we have image data, draw the image
-    this.copyPixels()
-    // if(typeof(this.state.imgData) === 'object')
-    // {
-    //   console.log('update + imageData')  
-    // } 
-    // else{
-    //   console.log('update')  
-    // }
+    if(typeof(this.state.imgData) === 'object')
+    {      
+      this.copyPixels() 
+    } 
   } 
   
   componentDidMount(){
@@ -169,14 +157,13 @@ class Canvas extends React.Component {
   drawImage(){
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
-    ctx.putImageData(this.state.imgData, 0, 0)      
-    // this.copyPixels()
+    ctx.putImageData(this.state.imgData, 0, 0)   
   }
 
   copyPixels(){    
     const canvas = this.canvas.current
     const ctx = canvas.getContext('2d')
-    const imageData = ctx.getImageData(0,0,this.state.imgData.width,this.state.imgData.height)
+    const imageData = ctx.getImageData(0,0,this.state.imgData.width,this.state.imgData.height)   
     
     var data = imageData.data
     const secondCanvas = this.secondCanvas.current
@@ -210,17 +197,83 @@ class Canvas extends React.Component {
     }
     var it = colorSet.values()
     var first = it.next()
-    if(this.state.debug !== colorSet.size){
-      console.log(colorSet.size)      
+    if(this.state.debug !== colorSet.size){   
+     
       this.drawGrid()
       typeof(this.state.imgData) === 'object' && this.drawImage()    
       this.setState(prevState => ({
         debug: colorSet.size
       }))
-    }
+      
+    } 
     ctx2.putImageData(imageData, 0, 0)
+    if(ctx2)  
+    {
+      var palette = this.getDominantPalettes(this.getAllPalettes(secondCanvas.width, secondCanvas.height, ctx2), 3, 'rgba') 
+      console.log(palette)
+    } 
   }
    
+
+//#region Extract Color Palette
+getAllPalettes(width, height, context) {
+  const distinctPalettes = []
+  // loop through each and every pixels of image       
+  for (var i=0; i<=height; i++) { 
+    for (var j=0; j<=width; j++) { 
+      try {
+        var data = context.getImageData(i, j, 1, 1)
+        if (data.data.toString().trim() !== '0,0,0,0') {
+          distinctPalettes.push(data.data)
+        }
+      } catch(e) {
+        console.log(e)
+      }
+    }
+  }   
+  return distinctPalettes;
+}
+
+getPaletteOccurrences(palettes) {  
+  let paletteList = [], occurrenceList = [], previousPalette;
+  palettes.sort();
+  palettes.forEach((palette, key) => {
+    if (palette.toString() !== previousPalette) {
+      paletteList.push(palette);
+      occurrenceList.push(1);
+    } else {
+      occurrenceList[occurrenceList.length-1]++;
+    }
+    previousPalette = palettes[key].toString();
+  });
+  return [paletteList, occurrenceList];
+}
+
+getDominantPalettes(allPalettes, distinctCount, colorType) {
+  const combinations = this.getPaletteOccurrences(allPalettes);
+  let palettes = combinations[0];
+  let occurrences = combinations[1];
+  const dominantPalettes = [];
+
+  while (distinctCount) {               
+    let dominant = 0, dominantKey = 0;  
+    occurrences.forEach((v, k) => {           
+      if (v > dominant) {
+        dominant = v;              
+        dominantKey = k;                               
+      }
+    });
+    dominantPalettes.push(palettes[dominantKey]);
+      
+    palettes.splice(dominantKey, 1);            
+    occurrences.splice(dominantKey, 1);
+    distinctCount--;
+  }
+  return dominantPalettes;
+}
+
+//#endregion
+
   drawGrid(){
     console.log("draw grid")
     const canvas = this.secondCanvas.current
@@ -251,7 +304,6 @@ class Canvas extends React.Component {
     var svg = new Blob([data], {type: 'image/svg+xml;charset=utf-8'})
     var url = DOMURL.createObjectURL(svg)
     imgGrid.src = url   
-
     imgGrid.onload  = () => {
       ctx.drawImage(imgGrid, 0, 0)
       DOMURL.revokeObjectURL(url)
@@ -338,6 +390,17 @@ class Canvas extends React.Component {
                   <label>{this.state.debug}</label>
                 </Grid>
               </Grid>   
+            </Box>
+            <Box 
+              p={1} 
+              border={1} 
+              borderColor="grey.200" 
+              borderRadius={10} >
+                <Grid container direction="row">
+                  <Swatch color={[20,100,250,255]}></Swatch>
+                  {this.state.colors.map((color, key) => ( <Swatch key={key} color={color}></Swatch> ))}
+                </Grid>
+              <Button variant="contained" component="span" color="primary" onClick={this.handleColors}>Colors</Button>
             </Box>
           </Grid> 
           <Grid item xs={9} container direction="row">
